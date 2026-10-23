@@ -7,11 +7,17 @@ async function createProduct(req, res) {
     const { name, price, description, createdBy } = req.body;
     const { ObjectId } = require("mongodb");
 
-    if (!name || typeof price !== "number") {
-      return res.status(400).json({
-        message: "Product name and numeric price are required",
-      });
-    }
+    if (
+        typeof name !== "string" ||
+        name.trim() === "" ||
+        typeof price !== "number" ||
+        !Number.isFinite(price) ||
+        price < 0
+    ) {
+        return res.status(400).json({
+            message: "A valid product name and non-negative numeric price are required",
+        });
+        }
 
     if (!ObjectId.isValid(createdBy)) {
         return res.status(400).json({

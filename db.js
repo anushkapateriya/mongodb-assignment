@@ -2,7 +2,13 @@
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
 
-const client = new MongoClient(process.env.MONGODB_URI);
+const uri = process.env.MONGODB_URI;
+
+if (!uri) {
+  throw new Error("MONGODB_URI is missing from the .env file");
+}
+
+const client = new MongoClient(uri);
 
 let db;
 
@@ -20,5 +26,3 @@ async function connectDB() {
 }
 
 module.exports = { connectDB };
-
-

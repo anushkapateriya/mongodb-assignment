@@ -1,0 +1,42 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MongoDB Store</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <h1>MongoDB Store</h1>
+    <nav>
+      <button onclick="showPage('products')">Products</button>
+      <button onclick="showPage('cart')">My Cart</button>
+      <button onclick="showPage('orders')">My Orders</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="products-page" class="page">
+      <h2>Products</h2>
+      <div id="products-list">Loading products...</div>
+    </section>
+
+    <section id="cart-page" class="page hidden">
+      <h2>My Cart</h2>
+      <div id="cart-list"></div>
+      <button id="place-order-button" onclick="placeOrder()">
+        Place Order
+      </button>
+    </section>
+
+    <section id="orders-page" class="page hidden">
+      <h2>My Orders</h2>
+      <div id="orders-list"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

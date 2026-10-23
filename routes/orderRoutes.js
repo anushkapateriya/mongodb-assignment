@@ -17,10 +17,8 @@ router.post("/:userId", async (req, res) => {
       order,
     });
   } catch (error) {
-    const statusCode = error.message === "Cart is empty" ? 400 : 400;
-
-    res.status(statusCode).json({
-      message: error.message,
+    res.status(400).json({
+        message: error.message,
     });
   }
 });
