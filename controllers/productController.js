@@ -4,7 +4,8 @@ const { connectDB } = require("../db");
 // Create a new product
 async function createProduct(req, res) {
   try {
-    const { name, price, description } = req.body;
+    const { name, price, description, createdBy } = req.body;
+    const { ObjectId } = require("mongodb");
 
     if (!name || typeof price !== "number") {
       return res.status(400).json({
@@ -12,13 +13,30 @@ async function createProduct(req, res) {
       });
     }
 
+    if (!ObjectId.isValid(createdBy)) {
+        return res.status(400).json({
+            message: "Valid creator user ID is required",
+        });
+    }
+
     const db = await connectDB();
+
+    const user = await db.collection("users").findOne({
+        _id: new ObjectId(createdBy),
+        });
+
+        if (!user) {
+        return res.status(404).json({
+            message: "Creator user not found",
+        });
+    }
 
     const result = await db.collection("products").insertOne({
       name,
       price,
       description: description || "",
       createdAt: new Date(),
+      createdBy: new ObjectId(createdBy),
     });
 
     res.status(201).json({

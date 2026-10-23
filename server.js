@@ -2,6 +2,7 @@
 const express = require("express");
 const { connectDB } = require("./db");
 const productRoutes = require("./routes/productRoutes");
+const cartRoutes = require("./routes/cartRoutes");
 
 const app = express();
 
@@ -9,6 +10,9 @@ app.use(express.json());
 
 // Product routes
 app.use("/products", productRoutes);
+
+//cart routes
+app.use("/cart", cartRoutes);
 
 async function startServer() {
   try {
