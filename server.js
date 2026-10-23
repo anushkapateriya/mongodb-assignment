@@ -3,6 +3,7 @@ const express = require("express");
 const { connectDB } = require("./db");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 
 const app = express();
 
@@ -13,6 +14,9 @@ app.use("/products", productRoutes);
 
 //cart routes
 app.use("/cart", cartRoutes);
+
+// Order routes
+app.use("/orders", orderRoutes);
 
 async function startServer() {
   try {
