@@ -1,8 +1,30 @@
 
-const { ObjectId } = require("mongodb");
-const { connectDB } = require("../db");
+const mongoose = require("mongoose");
 
-// Insert a new user into MongoDB
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const User = mongoose.model("User", userSchema);
+
+// Insert a new user
 async function createUser(userData) {
   if (
     !userData ||
@@ -14,28 +36,21 @@ async function createUser(userData) {
     throw new Error("A valid name and email are required");
   }
 
-  const db = await connectDB();
-
-  const result = await db.collection("users").insertOne({
+  const user = await User.create({
     name: userData.name.trim(),
     email: userData.email.trim().toLowerCase(),
-    createdAt: new Date(),
   });
 
-  return result.insertedId;
+  return user._id;
 }
 
 // Find a user by their MongoDB ID
 async function findUserByID(userId) {
-  if (!ObjectId.isValid(userId)) {
+  if (!mongoose.isValidObjectId(userId)) {
     return null;
   }
 
-  const db = await connectDB();
-
-  return db.collection("users").findOne({
-    _id: new ObjectId(userId),
-  });
+  return User.findById(userId);
 }
 
 module.exports = {

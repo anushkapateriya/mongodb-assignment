@@ -66,6 +66,7 @@ async function loadProducts() {
 }
 
 // Add a product to the current user's cart.
+
 async function addToCart(productId) {
   try {
     const response = await fetch(
@@ -80,10 +81,14 @@ async function addToCart(productId) {
     }
 
     alert("Product added to cart!");
+
+    // Open the Cart page after successfully adding the product.
+    await showPage("cart");
   } catch (error) {
     alert(error.message);
   }
 }
+
 
 // Load the user's cart and display each item.
 async function loadCart() {

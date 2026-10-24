@@ -1,53 +1,50 @@
 
-const { connectDB } = require("../db");
+const mongoose = require("mongoose");
+const Product = require("../models/productModel");
+const User = require("../models/userModel");
 
 // Create a new product
 async function createProduct(req, res) {
   try {
     const { name, price, description, createdBy } = req.body;
-    const { ObjectId } = require("mongodb");
 
     if (
-        typeof name !== "string" ||
-        name.trim() === "" ||
-        typeof price !== "number" ||
-        !Number.isFinite(price) ||
-        price < 0
+      typeof name !== "string" ||
+      name.trim() === "" ||
+      typeof price !== "number" ||
+      !Number.isFinite(price) ||
+      price < 0
     ) {
-        return res.status(400).json({
-            message: "A valid product name and non-negative numeric price are required",
-        });
-        }
-
-    if (!ObjectId.isValid(createdBy)) {
-        return res.status(400).json({
-            message: "Valid creator user ID is required",
-        });
+      return res.status(400).json({
+        message:
+          "A valid product name and non-negative numeric price are required",
+      });
     }
 
-    const db = await connectDB();
-
-    const user = await db.collection("users").findOne({
-        _id: new ObjectId(createdBy),
-        });
-
-        if (!user) {
-        return res.status(404).json({
-            message: "Creator user not found",
-        });
+    if (!mongoose.isValidObjectId(createdBy)) {
+      return res.status(400).json({
+        message: "Valid creator user ID is required",
+      });
     }
 
-    const result = await db.collection("products").insertOne({
-      name,
+    const user = await User.findUserByID(createdBy);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Creator user not found",
+      });
+    }
+
+    const product = await Product.create({
+      name: name.trim(),
       price,
       description: description || "",
-      createdAt: new Date(),
-      createdBy: new ObjectId(createdBy),
+      createdBy,
     });
 
     res.status(201).json({
       message: "Product created successfully",
-      productId: result.insertedId,
+      productId: product._id,
     });
   } catch (error) {
     console.error("Create product failed:", error.message);
@@ -61,12 +58,7 @@ async function createProduct(req, res) {
 // Fetch all products
 async function fetchProducts(req, res) {
   try {
-    const db = await connectDB();
-
-    const products = await db
-      .collection("products")
-      .find({})
-      .toArray();
+    const products = await Product.find();
 
     res.status(200).json(products);
   } catch (error) {
@@ -78,23 +70,18 @@ async function fetchProducts(req, res) {
   }
 }
 
-
+// Fetch one product by ID
 async function fetchSingleProduct(req, res) {
   try {
-    const { ObjectId } = require("mongodb");
     const { id } = req.params;
 
-    if (!ObjectId.isValid(id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         message: "Invalid product ID",
       });
     }
 
-    const db = await connectDB();
-
-    const product = await db.collection("products").findOne({
-      _id: new ObjectId(id),
-    });
+    const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({
@@ -112,22 +99,25 @@ async function fetchSingleProduct(req, res) {
   }
 }
 
-
+// Update a product
 async function updateProduct(req, res) {
   try {
-    const { ObjectId } = require("mongodb");
     const { id } = req.params;
     const { name, price, description } = req.body;
 
-    if (!ObjectId.isValid(id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         message: "Invalid product ID",
       });
     }
 
     if (
-      (name !== undefined && typeof name !== "string") ||
-      (price !== undefined && typeof price !== "number") ||
+      (name !== undefined &&
+        (typeof name !== "string" || name.trim() === "")) ||
+      (price !== undefined &&
+        (typeof price !== "number" ||
+          !Number.isFinite(price) ||
+          price < 0)) ||
       (description !== undefined && typeof description !== "string")
     ) {
       return res.status(400).json({
@@ -137,7 +127,7 @@ async function updateProduct(req, res) {
 
     const updates = {};
 
-    if (name !== undefined) updates.name = name;
+    if (name !== undefined) updates.name = name.trim();
     if (price !== undefined) updates.price = price;
     if (description !== undefined) updates.description = description;
 
@@ -147,14 +137,13 @@ async function updateProduct(req, res) {
       });
     }
 
-    const db = await connectDB();
-
-    const result = await db.collection("products").updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updates }
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
     );
 
-    if (result.matchedCount === 0) {
+    if (!product) {
       return res.status(404).json({
         message: "Product not found",
       });
@@ -162,34 +151,31 @@ async function updateProduct(req, res) {
 
     res.status(200).json({
       message: "Product updated successfully",
+      product,
     });
   } catch (error) {
     console.error("Update product failed:", error.message);
 
-    res.status(500).json({
-      message: "Failed to update product",
+    res.status(400).json({
+      message: error.message,
     });
   }
 }
 
+// Delete a product
 async function deleteProduct(req, res) {
   try {
-    const { ObjectId } = require("mongodb");
     const { id } = req.params;
 
-    if (!ObjectId.isValid(id)) {
+    if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
         message: "Invalid product ID",
       });
     }
 
-    const db = await connectDB();
+    const product = await Product.findByIdAndDelete(id);
 
-    const result = await db.collection("products").deleteOne({
-      _id: new ObjectId(id),
-    });
-
-    if (result.deletedCount === 0) {
+    if (!product) {
       return res.status(404).json({
         message: "Product not found",
       });

@@ -1,109 +1,118 @@
 
-const { ObjectId } = require("mongodb");
-const { connectDB } = require("../db");
+const mongoose = require("mongoose");
+const User = require("./userModel");
+const Product = require("./productModel");
+
+const cartItemSchema = new mongoose.Schema(
+  {
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 1,
+    },
+  },
+  { _id: false }
+);
+
+const cartSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    unique: true,
+  },
+  items: {
+    type: [cartItemSchema],
+    default: [],
+  },
+});
+
+const Cart = mongoose.model("Cart", cartSchema);
 
 async function addToCart(userId, productId) {
-  if (!ObjectId.isValid(userId) || !ObjectId.isValid(productId)) {
+  if (
+    !mongoose.isValidObjectId(userId) ||
+    !mongoose.isValidObjectId(productId)
+  ) {
     throw new Error("Invalid user ID or product ID");
   }
 
-  const db = await connectDB();
-  const userObjectId = new ObjectId(userId);
-  const productObjectId = new ObjectId(productId);
-  const cartCollection = db.collection("carts");
-
-  // Check that the user and product exist
-  const user = await db.collection("users").findOne({
-    _id: userObjectId,
-  });
+  const user = await User.findUserByID(userId);
 
   if (!user) {
     throw new Error("User not found");
   }
 
-  const product = await db.collection("products").findOne({
-    _id: productObjectId,
-  });
+  const product = await Product.findById(productId);
 
   if (!product) {
     throw new Error("Product not found");
   }
 
-  const cart = await cartCollection.findOne({
-    userId: userObjectId,
-  });
+  let cart = await Cart.findOne({ userId });
 
-  if (cart) {
-    const items = cart.items || [];
-
-    const itemIndex = items.findIndex((item) =>
-      item.productId.equals(productObjectId)
+  if (!cart) {
+    cart = new Cart({
+      userId,
+      items: [{ productId, quantity: 1 }],
+    });
+  } else {
+    const item = cart.items.find(
+      (entry) => entry.productId.toString() === productId
     );
 
-    if (itemIndex >= 0) {
-      await cartCollection.updateOne(
-        { _id: cart._id },
-        { $inc: { [`items.${itemIndex}.quantity`]: 1 } }
-      );
+    if (item) {
+      item.quantity += 1;
     } else {
-      await cartCollection.updateOne(
-        { _id: cart._id },
-        {
-          $push: {
-            items: {
-              productId: productObjectId,
-              quantity: 1,
-            },
-          },
-        }
-      );
+      cart.items.push({ productId, quantity: 1 });
     }
-  } else {
-    await cartCollection.insertOne({
-      userId: userObjectId,
-      items: [
-        {
-          productId: productObjectId,
-          quantity: 1,
-        },
-      ],
-    });
   }
+
+  await cart.save();
 
   return getCart(userId);
 }
 
 async function getCart(userId) {
-  if (!ObjectId.isValid(userId)) {
+  if (!mongoose.isValidObjectId(userId)) {
     throw new Error("Invalid user ID");
   }
 
-  const db = await connectDB();
-
-  return db.collection("carts").findOne({
-    userId: new ObjectId(userId),
-  });
+  return Cart.findOne({ userId });
 }
 
 async function removeFromCart(userId, productId) {
-  if (!ObjectId.isValid(userId) || !ObjectId.isValid(productId)) {
+  if (
+    !mongoose.isValidObjectId(userId) ||
+    !mongoose.isValidObjectId(productId)
+  ) {
     throw new Error("Invalid user ID or product ID");
   }
 
-  const db = await connectDB();
+  const cart = await Cart.findOne({ userId });
 
-  const result = await db.collection("carts").updateOne(
-    { userId: new ObjectId(userId) },
-    {
-      $pull: {
-        items: {
-          productId: new ObjectId(productId),
-        },
-      },
-    }
+  if (!cart) {
+    return false;
+  }
+
+  const originalLength = cart.items.length;
+
+  cart.items = cart.items.filter(
+    (item) => item.productId.toString() !== productId
   );
 
-  return result.modifiedCount > 0;
+  if (cart.items.length === originalLength) {
+    return false;
+  }
+
+  await cart.save();
+  return true;
 }
 
 module.exports = {

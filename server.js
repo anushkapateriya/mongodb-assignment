@@ -1,6 +1,6 @@
 const express = require("express");
 const path = require("path");
-const { connectDB } = require("./db");
+const { connectMongoose } = require("./mongooseConnect");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const orderRoutes = require("./routes/orderRoutes");
@@ -25,7 +25,7 @@ app.use("/users", userRoutes);
 
 async function startServer() {
   try {
-    await connectDB();
+    await connectMongoose();
 
     app.listen(3000, () => {
       console.log("Server running on http://localhost:3000");
