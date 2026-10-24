@@ -1,6 +1,6 @@
 
 const mongoose = require("mongoose");
-const Cart = require("./cartModel");
+const { getCart } = require("./cartModel");
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -48,7 +48,7 @@ async function placeOrder(userId) {
     throw new Error("Invalid user ID");
   }
 
-  const cart = await Cart.findOne({ userId });
+  const cart = await getCart(userId);
 
   if (!cart || !cart.items || cart.items.length === 0) {
     throw new Error("Cart is empty");
